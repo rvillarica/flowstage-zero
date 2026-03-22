@@ -191,7 +191,7 @@ src/
 
 ## Support
 
-For API-specific questions, refer to the [Flowstage API Developer Guide](https://app.theflowstage.com/docs).
+For API-specific questions, refer to the [Flowstage API Developer Guide](https://app.theflowstage.com/api-docs).
 
 For issues with this sample application, please open an issue on GitHub.
 
