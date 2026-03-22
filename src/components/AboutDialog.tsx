@@ -40,7 +40,15 @@ export default function AboutDialog({ showAbout, onClose }: AboutDialogProps) {
 
           <div className="bg-black/40 border border-gray-700/50 rounded-lg p-3">
             <p className="text-xs text-gray-300">
-              Flowstage Zero is open source and available on GitHub. Access it here!
+              Flowstage Zero is open source and available on GitHub.{' '}
+              <a
+                href="https://github.com/rvillarica/flowstage-zero"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white hover:underline font-medium"
+              >
+                Access it here!
+              </a>
             </p>
           </div>
         </div>

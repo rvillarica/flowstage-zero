@@ -534,7 +534,7 @@ export default function Dashboard({ apiKey, activeProfile, onSignOut, onSetApiKe
               <h2 className="text-lg font-semibold text-white">Select aesthetic</h2>
               <button
                 onClick={() => setShowAestheticHelp(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-purple-300 bg-purple-900/30 border border-purple-700/50 rounded-lg hover:bg-purple-900/50 hover:border-purple-600 transition-all"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs text-purple-300 bg-purple-900/30 border border-purple-700/50 rounded-lg hover:bg-purple-900/50 hover:border-purple-600 transition-all"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Make your own</span>
@@ -705,14 +705,15 @@ export default function Dashboard({ apiKey, activeProfile, onSignOut, onSetApiKe
                 ) : aesthetic ? (
                   <>
                     <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-lg font-semibold text-white">Configure video edit</h2>
+                      <h2 className="text-lg font-semibold text-white">Configure edit</h2>
                       <div className="flex items-center gap-3">
                         <button
                           onClick={rerollAll}
-                          className="flex items-center gap-2 px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg hover:bg-gray-800 transition-all text-sm text-white font-medium"
+                          className="flex items-center gap-2 px-4 py-2 sm:px-4 sm:py-2 bg-gray-800/50 border border-gray-700 rounded-lg hover:bg-gray-800 transition-all text-sm text-white font-medium"
+                          title="Reroll all"
                         >
                           <Shuffle className="w-4 h-4" />
-                          Reroll all
+                          <span className="hidden sm:inline">Reroll all</span>
                         </button>
                       </div>
                     </div>
@@ -1049,15 +1050,20 @@ export default function Dashboard({ apiKey, activeProfile, onSignOut, onSetApiKe
                               <span>Download video</span>
                             </a>
 
-                            {/* Edit in Flowstage Button */}
+                            {/* Edit in Flowstage Button - Desktop */}
                             <a
                               href={`https://app.theflowstage.com/create-content/${selectedAestheticId}?startDate=2026-03-22`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-gray-800 border border-gray-700 hover:bg-gray-700 hover:border-gray-600 text-white rounded-xl transition-all font-medium"
+                              className="hidden sm:flex items-center justify-center gap-2 w-full px-6 py-3 bg-gray-800 border border-gray-700 hover:bg-gray-700 hover:border-gray-600 text-white rounded-xl transition-all font-medium"
                             >
-                              <span>Edit this video (desktop required) →</span>
+                              <span>Edit this video on desktop →</span>
                             </a>
+
+                            {/* Edit CTA - Mobile only */}
+                            <p className="flex sm:hidden items-center justify-center w-full text-sm text-gray-400 italic">
+                              Edit this video on desktop
+                            </p>
 
                             {/* Glow effect */}
                             <div className="absolute -inset-6 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-blue-500/20 rounded-3xl blur-3xl -z-10" />
