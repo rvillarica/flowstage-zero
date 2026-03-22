@@ -266,6 +266,18 @@ export default function Dashboard({ apiKey, activeProfile, onSignOut, onSetApiKe
           // Fetch full video edit details
           const edit = await clientRef.current.getVideoEdit(editId)
           setVideoEdit(edit)
+
+          // Optimistically decrement the remaining edits count
+          if (limits) {
+            setLimits({
+              ...limits,
+              usage: {
+                ...limits.usage,
+                video_edits_per_month: (limits.usage.video_edits_per_month ?? 0) + 1
+              }
+            })
+          }
+
           return true
         }
 
@@ -486,6 +498,8 @@ export default function Dashboard({ apiKey, activeProfile, onSignOut, onSetApiKe
   const remainingEdits = limits
     ? Math.max(0, (limits.limits.video_edits_per_month ?? 0) - (limits.usage.video_edits_per_month ?? 0))
     : null
+
+  const isOverLimit = remainingEdits !== null && remainingEdits === 0
 
   return (
     <div className="min-h-screen bg-black text-white animate-[fadeIn_0.3s_ease-out]">
@@ -886,8 +900,8 @@ export default function Dashboard({ apiKey, activeProfile, onSignOut, onSetApiKe
               {(editStatus !== 'idle' || createdEditId) && aesthetic && (
                 <button
                   onClick={handleCreateEdit}
-                  disabled={loadingAesthetic || editStatus === 'creating' || editStatus === 'rendering' || !selectedPreset || !selectedAudioId || !selectedSectionId}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-white text-black rounded-2xl hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg hover:shadow-xl"
+                  disabled={loadingAesthetic || editStatus === 'creating' || editStatus === 'rendering' || !selectedPreset || !selectedAudioId || !selectedSectionId || isOverLimit}
+                  className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-white text-black rounded-2xl hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg hover:shadow-xl disabled:bg-gray-600 disabled:text-gray-400"
                 >
                   {loadingAesthetic ? (
                     <>
@@ -898,6 +912,11 @@ export default function Dashboard({ apiKey, activeProfile, onSignOut, onSetApiKe
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
                       {editStatus === 'creating' ? 'Creating draft...' : 'Rendering...'}
+                    </>
+                  ) : isOverLimit ? (
+                    <>
+                      <Play className="w-5 h-5" />
+                      <span>Monthly limit reached (0 remaining)</span>
                     </>
                   ) : (
                     <>
@@ -915,15 +934,6 @@ export default function Dashboard({ apiKey, activeProfile, onSignOut, onSetApiKe
 
             {/* Right Column - Video Preview */}
             <div className="space-y-6">
-              {/* Error Message */}
-              {error && (
-                <div className="bg-red-900/20 border border-red-800/50 rounded-lg p-4">
-                  <p className="text-sm text-red-400 font-medium">
-                    {error}
-                  </p>
-                </div>
-              )}
-
               {loadingExistingEdit ? (
                 <div className="bg-gradient-to-br from-gray-900/80 to-gray-900/40 backdrop-blur-md rounded-3xl border border-gray-800/50 p-8 flex items-center justify-center min-h-[400px]">
                   <div className="text-center">
@@ -1075,27 +1085,33 @@ export default function Dashboard({ apiKey, activeProfile, onSignOut, onSetApiKe
                 </div>
               ) : (
                 <div className="bg-gradient-to-br from-gray-900/50 to-gray-900/20 rounded-3xl border-2 border-dashed border-gray-700 p-16 text-center">
-                  <h3 className="text-lg font-semibold text-gray-400 mb-2">Ready to create</h3>
-                  <p className="text-sm text-gray-500 max-w-md mx-auto mb-6">
-                    Configure your settings and create your first video edit.
-                  </p>
-
                   {/* Create button in empty state */}
                   <button
                     onClick={handleCreateEdit}
-                    disabled={loadingAesthetic || !selectedPreset || !selectedAudioId || !selectedSectionId}
-                    className="inline-flex items-center justify-center gap-2 px-6 py-4 bg-white text-black rounded-2xl hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg hover:shadow-xl"
+                    disabled={loadingAesthetic || !selectedPreset || !selectedAudioId || !selectedSectionId || isOverLimit}
+                    className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 bg-white text-black rounded-2xl hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg hover:shadow-xl disabled:bg-gray-600 disabled:text-gray-400"
                   >
                     {loadingAesthetic ? (
                       <>
                         <Loader2 className="w-5 h-5 animate-spin" />
                         <span>Loading aesthetic...</span>
                       </>
+                    ) : isOverLimit ? (
+                      <>
+                        <Play className="w-5 h-5" />
+                        <div className="flex flex-col">
+                          <span>Monthly limit reached</span>
+                          <span className="text-xs">(0 remaining this month)</span>
+                        </div>
+                      </>
                     ) : (
                       <>
                         <Play className="w-5 h-5" />
                         {remainingEdits !== null && remainingEdits < 10 ? (
-                          <span>Create video edit ({remainingEdits} remaining this month)</span>
+                        <div className="flex flex-col">
+                          <span>Create video edit</span>
+                          <span className="text-xs text-gray-400">({remainingEdits} remaining this month)</span>
+                        </div>
                         ) : (
                           <span>Create video edit</span>
                         )}
@@ -1158,9 +1174,9 @@ export default function Dashboard({ apiKey, activeProfile, onSignOut, onSetApiKe
                 href={`https://app.theflowstage.com/facets/${selectedAestheticId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-2 text-sm font-medium text-black bg-white rounded-lg hover:bg-gray-200 transition-colors"
+                className="hidden sm:inline-flex px-4 py-2 text-sm font-medium text-black bg-white rounded-lg hover:bg-gray-200 transition-colors"
               >
-                Edit now (desktop required) →
+                Edit presets on Flowstage →
               </a>
             </div>
           </div>
@@ -1216,9 +1232,9 @@ export default function Dashboard({ apiKey, activeProfile, onSignOut, onSetApiKe
                 href={`https://app.theflowstage.com/facets/${selectedAestheticId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-2 text-sm font-medium text-black bg-white rounded-lg hover:bg-gray-200 transition-colors"
+                className="hidden sm:inline-flex px-4 py-2 text-sm font-medium text-black bg-white rounded-lg hover:bg-gray-200 transition-colors"
               >
-                Edit now (desktop required) →
+                Add audio on Flowstage →
               </a>
             </div>
           </div>
@@ -1275,9 +1291,9 @@ export default function Dashboard({ apiKey, activeProfile, onSignOut, onSetApiKe
                 href={`https://app.theflowstage.com/facets/${selectedAestheticId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-2 text-sm font-medium text-black bg-white rounded-lg hover:bg-gray-200 transition-colors"
+                className="hidden sm:inline-flex px-4 py-2 text-sm font-medium text-black bg-white rounded-lg hover:bg-gray-200 transition-colors"
               >
-                Edit now (desktop required) →
+                Define sections on Flowstage →
               </a>
             </div>
           </div>
@@ -1334,10 +1350,13 @@ export default function Dashboard({ apiKey, activeProfile, onSignOut, onSetApiKe
                 href="https://app.theflowstage.com/facet-builder"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-2 text-sm font-medium text-black bg-white rounded-lg hover:bg-gray-200 transition-colors"
+                className="hidden sm:inline-flex px-4 py-2 text-sm font-medium text-black bg-white rounded-lg hover:bg-gray-200 transition-colors"
               >
-                Build now (desktop required) →
+                Build now on desktop →
               </a>
+              <span className="flex sm:hidden px-4 py-2 text-sm text-gray-400 italic">
+                Build now on desktop
+              </span>
             </div>
           </div>
         </div>
