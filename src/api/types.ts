@@ -16,7 +16,13 @@ export interface AestheticDetail {
   slideshow_preset_names: string[]
   videos: Video[]
   audios: Audio[]
+  photos: Photo[]
   hooks: Hook[]
+}
+
+export interface Photo {
+  name: string
+  url: string
 }
 
 export interface Video {
@@ -84,6 +90,7 @@ export interface CreateEditRequest {
     end_time: number
   }>
   is_flipbook?: boolean
+  loop_interval_seconds?: number
 }
 
 export interface UsageLimits {

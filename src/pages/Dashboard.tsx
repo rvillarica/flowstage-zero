@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { LogOut, Play, Loader2, ChevronDown, Shuffle, CheckCircle2, Circle, Film, ChevronLeft, ChevronRight, HelpCircle, X, Plus, Download, RefreshCw, Info } from 'lucide-react'
+import { LogOut, Play, Loader2, ChevronDown, Shuffle, CheckCircle2, Circle, Film, ChevronLeft, ChevronRight, HelpCircle, X, Plus, Download, RefreshCw, Info, Images } from 'lucide-react'
 import { FlowstageClient, FlowstageAPIError } from '../api/flowstage'
 import { useSearchParams } from 'react-router-dom'
 import useEmblaCarousel from 'embla-carousel-react'
@@ -31,6 +31,8 @@ export default function Dashboard({ apiKey, activeProfile, onSignOut, onSetApiKe
   const [selectedAudioId, setSelectedAudioId] = useState<string | null>(null)
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null)
   const [hookText, setHookText] = useState('')
+  const [isFlipbook, setIsFlipbook] = useState(false)
+  const [flipbookInterval, setFlipbookInterval] = useState(0.3)
   const [createdEditId, setCreatedEditId] = useState<string | null>(searchParams.get('edit_id'))
 
   // Manual state management (no TanStack Query)
@@ -219,6 +221,7 @@ export default function Dashboard({ apiKey, activeProfile, onSignOut, onSetApiKe
 
   const handleAestheticSelect = (aestheticId: string) => {
     setSelectedAestheticId(aestheticId)
+    setIsFlipbook(false)
     setCreatedEditId(null)
     setEditStatus('idle')
     setError(null)
@@ -226,6 +229,13 @@ export default function Dashboard({ apiKey, activeProfile, onSignOut, onSetApiKe
     // Note: We still need to load the full aesthetic details for audios, sections, and hooks
     // The summary only gives us thumbnails and counts, not the actual data
     // Auto-randomization will happen after the full aesthetic loads in the useEffect
+  }
+
+  const handleFlipbookToggle = (enabled: boolean) => {
+    setIsFlipbook(enabled)
+    setCreatedEditId(null)
+    setEditStatus('idle')
+    setError(null)
   }
 
   const handlePresetSelect = (presetName: string) => {
@@ -332,6 +342,11 @@ export default function Dashboard({ apiKey, activeProfile, onSignOut, onSetApiKe
         section_end_time: section.end_time,
         preset_name: selectedPreset,
         hook: hookText.trim() || ' ',  // Pass space string if empty
+        // Flipbook mode: auto-draft with photos instead of videos
+        ...(isFlipbook && {
+          is_flipbook: true,
+          loop_interval_seconds: flipbookInterval,
+        }),
       })
 
       setCreatedEditId(result.video_edit_id)
@@ -350,6 +365,8 @@ export default function Dashboard({ apiKey, activeProfile, onSignOut, onSetApiKe
     selectedAudioId,
     selectedSectionId,
     hookText,
+    isFlipbook,
+    flipbookInterval,
     aesthetic,
     pollRender
   ])
@@ -493,6 +510,15 @@ export default function Dashboard({ apiKey, activeProfile, onSignOut, onSetApiKe
   }
 
   const selectedAesthetic = aesthetics.find(a => a.id === selectedAestheticId)
+
+  // Photos available in the selected aesthetic. The summary endpoint gives us
+  // photo_count up front; the full aesthetic detail (photos array) is the
+  // fallback. Flipbook mode returns 422 when the aesthetic has no photos, so
+  // the toggle only appears when there is at least one.
+  const photoCount = selectedAestheticId
+    ? (aestheticsSummaries[selectedAestheticId]?.photo_count ?? aesthetic?.photos?.length ?? 0)
+    : 0
+  const hasPhotos = photoCount > 0
 
   // Calculate remaining video edits
   const remainingEdits = limits
@@ -733,6 +759,68 @@ export default function Dashboard({ apiKey, activeProfile, onSignOut, onSetApiKe
                     </div>
 
                 <div className="space-y-6">
+                  {/* Flipbook toggle - only when the aesthetic has photos */}
+                  {hasPhotos && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Mode
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleFlipbookToggle(false)}
+                          className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border text-sm font-medium transition-all ${
+                            !isFlipbook
+                              ? 'bg-white text-black border-white'
+                              : 'bg-gray-900 text-gray-400 border-gray-700 hover:text-white hover:border-gray-600'
+                          }`}
+                        >
+                          <Film className="w-4 h-4" />
+                          Videos
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleFlipbookToggle(true)}
+                          className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border text-sm font-medium transition-all ${
+                            isFlipbook
+                              ? 'bg-white text-black border-white'
+                              : 'bg-gray-900 text-gray-400 border-gray-700 hover:text-white hover:border-gray-600'
+                          }`}
+                        >
+                          <Images className="w-4 h-4" />
+                          Photo flipbook
+                        </button>
+                      </div>
+                      {isFlipbook && (
+                        <>
+                          <div className="mt-3 flex items-center justify-between gap-3">
+                            <label className="text-sm font-medium text-gray-300 shrink-0">
+                              Photo speed
+                            </label>
+                            <div className="relative flex-1 max-w-[12rem]">
+                              <select
+                                value={flipbookInterval}
+                                onChange={(e) => setFlipbookInterval(parseFloat(e.target.value))}
+                                className="w-full px-3 py-2 pr-8 bg-gray-900 border border-gray-700 rounded-lg appearance-none focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all text-white text-sm"
+                              >
+                                <option value={0.2}>Fast (0.2s per photo)</option>
+                                <option value={0.3}>Default (0.3s per photo)</option>
+                                <option value={0.5}>Relaxed (0.5s per photo)</option>
+                                <option value={1}>Slow (1s per photo)</option>
+                              </select>
+                              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                            </div>
+                          </div>
+                          <div className="mt-3 bg-black/40 border border-gray-700/50 rounded-lg p-3">
+                            <p className="text-xs text-gray-300">
+                              <strong>Flipbook mode:</strong> Flowstage picks up to 8 random photos from this aesthetic ({photoCount} available) and loops them to your audio instead of using video clips.
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+
                   {/* Preset Dropdown */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
@@ -922,9 +1010,9 @@ export default function Dashboard({ apiKey, activeProfile, onSignOut, onSetApiKe
                     <>
                       <Play className="w-5 h-5" />
                       {remainingEdits !== null && remainingEdits < 10 ? (
-                        <span>Create video edit ({remainingEdits} remaining this month)</span>
+                        <span>{isFlipbook ? 'Create photo flipbook' : 'Create video edit'} ({remainingEdits} remaining this month)</span>
                       ) : (
-                        <span>Create video edit</span>
+                        <span>{isFlipbook ? 'Create photo flipbook' : 'Create video edit'}</span>
                       )}
                     </>
                   )}
@@ -1109,11 +1197,11 @@ export default function Dashboard({ apiKey, activeProfile, onSignOut, onSetApiKe
                         <Play className="w-5 h-5" />
                         {remainingEdits !== null && remainingEdits < 10 ? (
                         <div className="flex flex-col">
-                          <span>Create video edit</span>
+                          <span>{isFlipbook ? 'Create photo flipbook' : 'Create video edit'}</span>
                           <span className="text-xs text-gray-400">({remainingEdits} remaining this month)</span>
                         </div>
                         ) : (
-                          <span>Create video edit</span>
+                          <span>{isFlipbook ? 'Create photo flipbook' : 'Create video edit'}</span>
                         )}
                       </>
                     )}
